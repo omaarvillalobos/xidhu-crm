@@ -97,7 +97,7 @@ export default function QuotesPage() {
           <p className="label-ui" style={{ marginBottom: 4 }}>Gestión</p>
           <h1 style={{ margin: 0, fontSize: '1.75rem' }}>Cotizaciones</h1>
         </div>
-        <button className="xidhu-btn-primary" onClick={() => { setClients(getStoredClients()); setModalOpen(true) }}>
+        <button className="xidhu-btn-primary" onClick={() => { getStoredClients().then(setClients); setModalOpen(true) }}>
           + Nueva cotización
         </button>
       </div>

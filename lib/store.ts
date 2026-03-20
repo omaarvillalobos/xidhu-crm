@@ -1,21 +1,24 @@
+import { supabase } from './supabase'
 import type { Client, Quote } from './mock-data'
 
-export function getStoredClients(): Client[] {
-  if (typeof window === 'undefined') return []
-  const stored = localStorage.getItem('xidhu_clients')
-  return stored ? JSON.parse(stored) : []
+export async function getStoredClients(): Promise<Client[]> {
+  const { data } = await supabase.from('clients').select('*').order('created_at', { ascending: false })
+  return (data as Client[]) ?? []
 }
 
-export function saveClients(clients: Client[]) {
-  localStorage.setItem('xidhu_clients', JSON.stringify(clients))
+export async function insertClient(client: Client): Promise<void> {
+  await supabase.from('clients').insert(client)
 }
 
-export function getStoredQuotes(): Quote[] {
-  if (typeof window === 'undefined') return []
-  const stored = localStorage.getItem('xidhu_quotes')
-  return stored ? JSON.parse(stored) : []
+export async function getStoredQuotes(): Promise<Quote[]> {
+  const { data } = await supabase.from('quotes').select('*').order('created_at', { ascending: false })
+  return (data as Quote[]) ?? []
 }
 
-export function saveQuotes(quotes: Quote[]) {
-  localStorage.setItem('xidhu_quotes', JSON.stringify(quotes))
+export async function insertQuote(quote: Quote): Promise<void> {
+  await supabase.from('quotes').insert(quote)
+}
+
+export async function updateQuoteStatus(id: string, status: string): Promise<void> {
+  await supabase.from('quotes').update({ status }).eq('id', id)
 }

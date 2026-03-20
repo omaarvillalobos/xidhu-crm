@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { Quote, QuoteStatus, formatCurrency, formatDate } from '@/lib/mock-data'
-import { getStoredClients, getStoredQuotes, saveQuotes } from '@/lib/store'
+import { getStoredClients, getStoredQuotes, insertQuote, updateQuoteStatus as updateStatus } from '@/lib/store'
 import { getCurrentUser } from '@/lib/auth'
 import { Client } from '@/lib/mock-data'
 import StatusBadge from '@/components/ui/StatusBadge'
@@ -30,14 +30,15 @@ export default function QuotesPage() {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [modalOpen, setModalOpen] = useState(false)
+  const [selectedQuote, setSelectedQuote] = useState<Quote | null>(null)
   const [form, setForm] = useState({
     client_id: '', destination: '', travel_date: '', return_date: '',
     num_passengers: '2', amount: '', notes: '',
   })
 
   useEffect(() => {
-    setQuotes(getStoredQuotes())
-    setClients(getStoredClients())
+    getStoredQuotes().then(setQuotes)
+    getStoredClients().then(setClients)
   }, [])
 
   const clientById = (id: string) => clients.find((c) => c.id === id)
@@ -51,13 +52,12 @@ export default function QuotesPage() {
     return matchSearch && matchStatus
   })
 
-  const changeStatus = (id: string, newStatus: QuoteStatus) => {
-    const updated = quotes.map((q) => q.id === id ? { ...q, status: newStatus } : q)
-    setQuotes(updated)
-    saveQuotes(updated)
+  const changeStatus = async (id: string, newStatus: QuoteStatus) => {
+    await updateStatus(id, newStatus)
+    setQuotes((prev) => prev.map((q) => q.id === id ? { ...q, status: newStatus } : q))
   }
 
-  const saveQuote = () => {
+  const saveQuote = async () => {
     if (!form.client_id || !form.destination.trim() || !form.amount) return
     const user = getCurrentUser()
     const today = new Date()
@@ -77,9 +77,8 @@ export default function QuotesPage() {
       created_at: today.toISOString().split('T')[0],
       created_by: user?.id ?? 'u1',
     }
-    const updated = [newQuote, ...quotes]
-    setQuotes(updated)
-    saveQuotes(updated)
+    await insertQuote(newQuote)
+    setQuotes((prev) => [newQuote, ...prev])
     setForm({ client_id: '', destination: '', travel_date: '', return_date: '', num_passengers: '2', amount: '', notes: '' })
     setModalOpen(false)
   }
@@ -159,7 +158,7 @@ export default function QuotesPage() {
                     onMouseEnter={(e) => ((e.currentTarget as HTMLTableRowElement).style.background = '#FAFAF6')}
                     onMouseLeave={(e) => ((e.currentTarget as HTMLTableRowElement).style.background = 'transparent')}
                   >
-                    <td style={{ padding: '14px 20px', fontWeight: 500, fontSize: '0.875rem', color: '#1A1A2E' }}>{client?.full_name ?? '—'}</td>
+                    <td style={{ padding: '14px 20px', fontWeight: 500, fontSize: '0.875rem', color: '#2DC4C4', cursor: 'pointer', textDecoration: 'underline' }} onClick={() => setSelectedQuote(q)}>{client?.full_name ?? '—'}</td>
                     <td style={{ padding: '14px 20px', fontSize: '0.875rem', color: '#4A4A5A' }}>✈️ {q.destination}</td>
                     <td style={{ padding: '14px 20px', fontSize: '0.78rem', color: '#9ca3af', whiteSpace: 'nowrap' }}>{q.travel_date ? formatDate(q.travel_date) : '—'}</td>
                     <td style={{ padding: '14px 20px', fontSize: '0.875rem', color: '#4A4A5A', textAlign: 'center' }}>{q.num_passengers}</td>
@@ -242,6 +241,26 @@ export default function QuotesPage() {
             <button className="xidhu-btn-primary" onClick={saveQuote}>Guardar cotización</button>
           </div>
         </div>
+      </Modal>
+
+      {/* Modal notas */}
+      <Modal open={!!selectedQuote} onClose={() => setSelectedQuote(null)} title={`Notas — ${clientById(selectedQuote?.client_id ?? '')?.full_name ?? ''}`}>
+        {selectedQuote && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div style={{ background: '#f9fafb', borderRadius: 10, padding: '14px 16px' }}>
+              <p style={{ margin: 0, fontSize: '0.9rem', color: '#1A1A2E', lineHeight: 1.6 }}>
+                {selectedQuote.notes || 'Sin notas registradas.'}
+              </p>
+            </div>
+            <div style={{ fontSize: '0.8rem', color: '#9ca3af' }}>
+              <p style={{ margin: '0 0 4px' }}>✈️ {selectedQuote.destination} · {selectedQuote.num_passengers} pax · {formatCurrency(selectedQuote.amount)}</p>
+              <p style={{ margin: 0 }}>📅 Viaje: {selectedQuote.travel_date ? formatDate(selectedQuote.travel_date) : '—'} → {selectedQuote.return_date ? formatDate(selectedQuote.return_date) : '—'}</p>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <button className="xidhu-btn-secondary" onClick={() => setSelectedQuote(null)}>Cerrar</button>
+            </div>
+          </div>
+        )}
       </Modal>
     </div>
   )

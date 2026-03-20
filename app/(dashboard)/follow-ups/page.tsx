@@ -20,7 +20,9 @@ function diffDays(dateStr: string): number {
   return Math.round((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
 }
 
-function buildFromQuotes(quotes: ReturnType<typeof getStoredQuotes>): FollowUpItem[] {
+import type { Client, Quote } from '@/lib/mock-data'
+
+function buildFromQuotes(quotes: Quote[]): FollowUpItem[] {
   return quotes.filter((q) => q.status === 'pendiente' && q.follow_up_date)
     .map((q) => ({
       quoteId: q.id,
@@ -43,11 +45,12 @@ function sectionLabel(days: number) {
 
 export default function FollowUpsPage() {
   const [items, setItems] = useState<FollowUpItem[]>([])
-  const [clients, setClients] = useState(getStoredClients())
+  const [clients, setClients] = useState<Client[]>([])
+  const [quotes, setQuotes] = useState<Quote[]>([])
 
   useEffect(() => {
-    setItems(buildFromQuotes(getStoredQuotes()))
-    setClients(getStoredClients())
+    getStoredQuotes().then((q) => { setQuotes(q); setItems(buildFromQuotes(q)) })
+    getStoredClients().then(setClients)
   }, [])
 
   const dismiss = (qid: string) =>
@@ -155,7 +158,7 @@ export default function FollowUpsPage() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                   {group.items.map((item) => {
                     const client = clients.find((c) => c.id === item.clientId)
-                    const quote = getStoredQuotes().find((q) => q.id === item.quoteId)
+                    const quote = quotes.find((q) => q.id === item.quoteId)
                     const sect = sectionLabel(item.daysUntil)
 
                     return (

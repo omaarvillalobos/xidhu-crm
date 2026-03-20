@@ -69,7 +69,7 @@ export default function LoginPage() {
               width: '100vw', height: '100vh', position: 'relative',
             }}
           >
-            <Image src="/Logo-XIDHU.png" alt="Xidhu" fill priority style={{ objectFit: 'contain', padding: '5vw' }} />
+            <Image src="/Logo-XIDHU.png" alt="Xidhu" fill priority style={{ objectFit: 'contain', padding: '5vw', mixBlendMode: 'multiply' }} />
           </div>
         </div>
       )}
@@ -87,7 +87,7 @@ export default function LoginPage() {
       >
         <div style={{ width: '100%', maxWidth: 420 }}>
           <div style={{ textAlign: 'center', marginBottom: 28 }}>
-            <Image src="/Logo-XIDHU.png" alt="Xidhu" width={90} height={90} style={{ display: 'inline-block' }} />
+            <Image src="/Logo-XIDHU.png" alt="Xidhu" width={90} height={90} style={{ display: 'inline-block', mixBlendMode: 'multiply' }} />
             <p style={{ color: '#2DC4C4', fontSize: '0.7rem', letterSpacing: '5px', textTransform: 'uppercase', marginTop: 4, fontFamily: "'DM Sans', sans-serif", fontWeight: 600 }}>
               Travel · CRM
             </p>

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Client, Source, formatDate } from '@/lib/mock-data'
-import { getStoredClients, saveClients } from '@/lib/store'
+import { getStoredClients, insertClient } from '@/lib/store'
 import { getCurrentUser } from '@/lib/auth'
 import SourceBadge from '@/components/ui/SourceBadge'
 import Modal from '@/components/ui/Modal'
@@ -31,10 +31,10 @@ export default function ClientsPage() {
   const [form, setForm] = useState({ name: '', phone: '', email: '', source: 'whatsapp', notes: '' })
 
   useEffect(() => {
-    setClients(getStoredClients())
+    getStoredClients().then(setClients)
   }, [])
 
-  const saveClient = () => {
+  const saveClient = async () => {
     if (!form.name.trim()) return
     const user = getCurrentUser()
     const newClient: Client = {
@@ -47,9 +47,8 @@ export default function ClientsPage() {
       created_at: new Date().toISOString().split('T')[0],
       created_by: user?.id ?? 'u1',
     }
-    const updated = [newClient, ...clients]
-    setClients(updated)
-    saveClients(updated)
+    await insertClient(newClient)
+    setClients((prev) => [newClient, ...prev])
     setForm({ name: '', phone: '', email: '', source: 'whatsapp', notes: '' })
     setModalOpen(false)
   }

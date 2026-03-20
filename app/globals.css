@@ -1,0 +1,148 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=DM+Sans:wght@400;500;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --xidhu-teal:      #2DC4C4;
+  --xidhu-yellow:    #F5C12E;
+  --xidhu-orange:    #F47B20;
+  --xidhu-red:       #E63329;
+  --xidhu-green:     #5DB544;
+  --xidhu-blue:      #3B6FBF;
+  --xidhu-purple:    #9B59B6;
+  --xidhu-pink:      #E84393;
+  --xidhu-offwhite:  #FAFAF6;
+  --xidhu-dark:      #1A1A2E;
+  --xidhu-mid:       #4A4A5A;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background-color: var(--xidhu-offwhite);
+  color: var(--xidhu-dark);
+  margin: 0;
+  padding: 0;
+}
+
+h1, h2, h3 {
+  font-family: 'Playfair Display', serif;
+}
+
+/* Scrollbar sutil */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
+
+@layer components {
+  .xidhu-card {
+    @apply bg-white rounded-2xl p-6;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+  }
+
+  .xidhu-btn-primary {
+    @apply text-white font-semibold px-6 py-2.5 transition-all duration-200;
+    background: var(--xidhu-teal);
+    border-radius: 9999px;
+  }
+  .xidhu-btn-primary:hover {
+    background: #25a8a8;
+    transform: translateY(-1px);
+  }
+
+  .xidhu-btn-secondary {
+    @apply font-semibold px-6 py-2.5 transition-all duration-200;
+    background: transparent;
+    border: 1.5px solid var(--xidhu-teal);
+    color: var(--xidhu-teal);
+    border-radius: 9999px;
+  }
+  .xidhu-btn-secondary:hover {
+    background: rgba(45,196,196,0.08);
+  }
+
+  .xidhu-btn-danger {
+    @apply text-white font-semibold px-4 py-2 text-sm transition-all duration-200;
+    background: var(--xidhu-red);
+    border-radius: 9999px;
+  }
+
+  .xidhu-btn-ghost {
+    @apply font-semibold px-4 py-2 text-sm transition-all duration-200 rounded-xl;
+    background: transparent;
+    color: var(--xidhu-mid);
+  }
+  .xidhu-btn-ghost:hover { background: #f3f4f6; }
+
+  .label-ui {
+    font-size: 0.7rem;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    font-weight: 600;
+    color: var(--xidhu-teal);
+    font-family: 'DM Sans', sans-serif;
+  }
+
+  .badge-pendiente {
+    background: #FEF9E7;
+    color: #d4a017;
+    border: 1px solid #F5C12E;
+    font-size: 0.7rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 9999px;
+    display: inline-block;
+  }
+  .badge-ganada {
+    background: #EAF7E4;
+    color: #3a8a27;
+    border: 1px solid #5DB544;
+    font-size: 0.7rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 9999px;
+    display: inline-block;
+  }
+  .badge-perdida {
+    background: #FDEEEE;
+    color: #c0221a;
+    border: 1px solid #E63329;
+    font-size: 0.7rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 9999px;
+    display: inline-block;
+  }
+  .badge-vencida {
+    background: #f3f4f6;
+    color: #6b7280;
+    border: 1px solid #d1d5db;
+    font-size: 0.7rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 9999px;
+    display: inline-block;
+  }
+  .badge-source {
+    font-size: 0.7rem;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 9999px;
+    display: inline-block;
+  }
+}

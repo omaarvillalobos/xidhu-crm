@@ -3,8 +3,9 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Client, Source, formatDate } from '@/lib/mock-data'
-import { getStoredClients, insertClient } from '@/lib/store'
+import { getStoredClients, insertClient, deleteClient, getStoredQuotes } from '@/lib/store'
 import { getCurrentUser } from '@/lib/auth'
+import { exportToExcel } from '@/lib/export'
 import SourceBadge from '@/components/ui/SourceBadge'
 import Modal from '@/components/ui/Modal'
 
@@ -53,6 +54,12 @@ export default function ClientsPage() {
     setModalOpen(false)
   }
 
+  const removeClient = async (id: string) => {
+    if (!confirm('¿Eliminar este cliente?')) return
+    await deleteClient(id)
+    setClients((prev) => prev.filter((c) => c.id !== id))
+  }
+
   const filtered = clients.filter((c) => {
     const matchSearch = c.full_name.toLowerCase().includes(search.toLowerCase()) || c.phone.includes(search)
     const matchSource = !sourceFilter || c.source === sourceFilter
@@ -72,9 +79,14 @@ export default function ClientsPage() {
           <p className="label-ui" style={{ marginBottom: 4 }}>Base de datos</p>
           <h1 style={{ margin: 0, fontSize: '1.75rem' }}>Clientes</h1>
         </div>
-        <button className="xidhu-btn-primary" onClick={() => setModalOpen(true)}>
-          + Nuevo cliente
-        </button>
+        <div style={{ display: 'flex', gap: 12 }}>
+          <button className="xidhu-btn-secondary" onClick={async () => { const quotes = await getStoredQuotes(); exportToExcel(clients, quotes) }}>
+            ↓ Exportar Excel
+          </button>
+          <button className="xidhu-btn-primary" onClick={() => setModalOpen(true)}>
+            + Nuevo cliente
+          </button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -133,9 +145,14 @@ export default function ClientsPage() {
                   <td style={{ padding: '16px 24px', fontSize: '0.875rem', color: '#4A4A5A' }}>{execName(c.created_by)}</td>
                   <td style={{ padding: '16px 24px', fontSize: '0.875rem', color: '#9ca3af' }}>{formatDate(c.created_at)}</td>
                   <td style={{ padding: '16px 24px' }}>
-                    <Link href={`/clients/${c.id}`} style={{ background: 'rgba(45,196,196,0.1)', color: '#2DC4C4', borderRadius: 9999, padding: '6px 14px', fontSize: '0.78rem', fontWeight: 600, textDecoration: 'none', whiteSpace: 'nowrap' }}>
-                      Ver perfil →
-                    </Link>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <Link href={`/clients/${c.id}`} style={{ background: 'rgba(45,196,196,0.1)', color: '#2DC4C4', borderRadius: 9999, padding: '6px 14px', fontSize: '0.78rem', fontWeight: 600, textDecoration: 'none', whiteSpace: 'nowrap' }}>
+                        Ver perfil →
+                      </Link>
+                      <button onClick={() => removeClient(c.id)} style={{ background: 'rgba(239,68,68,0.1)', color: '#ef4444', border: 'none', borderRadius: 9999, padding: '6px 14px', fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                        Eliminar
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}

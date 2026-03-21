@@ -22,3 +22,11 @@ export async function insertQuote(quote: Quote): Promise<void> {
 export async function updateQuoteStatus(id: string, status: string): Promise<void> {
   await supabase.from('quotes').update({ status }).eq('id', id)
 }
+
+export async function deleteQuote(id: string): Promise<void> {
+  await supabase.from('quotes').delete().eq('id', id)
+}
+
+export async function deleteClient(id: string): Promise<void> {
+  await supabase.from('clients').delete().eq('id', id)
+}

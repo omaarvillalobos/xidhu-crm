@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
+import * as XLSX from 'xlsx'
 import { Quote, QuoteStatus, formatCurrency, formatDate } from '@/lib/mock-data'
-import { getStoredClients, getStoredQuotes, insertQuote, updateQuoteStatus as updateStatus } from '@/lib/store'
+import { getStoredClients, getStoredQuotes, insertQuote, updateQuoteStatus as updateStatus, deleteQuote } from '@/lib/store'
 import { getCurrentUser } from '@/lib/auth'
 import { Client } from '@/lib/mock-data'
 import StatusBadge from '@/components/ui/StatusBadge'
@@ -16,6 +17,13 @@ const STATUS_OPTIONS = [
   { value: 'vencida', label: 'Vencida' },
 ]
 
+const EXEC_OPTIONS = [
+  { value: '', label: 'Todos los ejecutivos' },
+  { value: 'u1', label: 'Ana García' },
+  { value: 'u2', label: 'Carlos López' },
+  { value: 'u3', label: 'María Torres' },
+]
+
 const INPUT_STYLE = {
   width: '100%', padding: '11px 14px', border: '1.5px solid #e5e7eb',
   borderRadius: 10, fontSize: '0.9rem', fontFamily: "'DM Sans', sans-serif",
@@ -23,6 +31,12 @@ const INPUT_STYLE = {
 }
 
 const EXEC_NAMES: Record<string, string> = { u1: 'Ana García', u2: 'Carlos López', u3: 'María Torres' }
+
+const now = new Date()
+const DEFAULT_FROM = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`
+const DEFAULT_TO = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()}`
+
+type SortCol = 'client' | 'destination' | 'travel_date' | 'amount' | 'status' | 'created_by' | 'follow_up_date'
 
 export default function QuotesPage() {
   const [quotes, setQuotes] = useState<Quote[]>([])
@@ -35,6 +49,11 @@ export default function QuotesPage() {
     client_id: '', destination: '', travel_date: '', return_date: '',
     num_passengers: '2', amount: '', notes: '',
   })
+  const [execFilter, setExecFilter] = useState('')
+  const [dateFrom, setDateFrom] = useState(DEFAULT_FROM)
+  const [dateTo, setDateTo] = useState(DEFAULT_TO)
+  const [sortCol, setSortCol] = useState<SortCol | ''>('')
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
 
   useEffect(() => {
     getStoredQuotes().then(setQuotes)
@@ -43,14 +62,54 @@ export default function QuotesPage() {
 
   const clientById = (id: string) => clients.find((c) => c.id === id)
 
-  const filtered = quotes.filter((q) => {
-    const client = clientById(q.client_id)
-    const matchSearch =
-      q.destination.toLowerCase().includes(search.toLowerCase()) ||
-      (client?.full_name.toLowerCase().includes(search.toLowerCase()) ?? false)
-    const matchStatus = !statusFilter || q.status === statusFilter
-    return matchSearch && matchStatus
+  const filtered = useMemo(() => {
+    let result = quotes.filter((q) => {
+      const client = clients.find((c) => c.id === q.client_id)
+      const matchSearch =
+        q.destination.toLowerCase().includes(search.toLowerCase()) ||
+        (client?.full_name.toLowerCase().includes(search.toLowerCase()) ?? false)
+      const matchStatus = !statusFilter || q.status === statusFilter
+      const matchExec = !execFilter || q.created_by === execFilter
+      const matchDate = (!dateFrom || q.created_at >= dateFrom) && (!dateTo || q.created_at <= dateTo)
+      return matchSearch && matchStatus && matchExec && matchDate
+    })
+    if (sortCol) {
+      result = [...result].sort((a, b) => {
+        let va: any, vb: any
+        if (sortCol === 'client') {
+          va = clients.find((c) => c.id === a.client_id)?.full_name ?? ''
+          vb = clients.find((c) => c.id === b.client_id)?.full_name ?? ''
+        } else {
+          va = (a as any)[sortCol] ?? ''
+          vb = (b as any)[sortCol] ?? ''
+        }
+        if (va < vb) return sortDir === 'asc' ? -1 : 1
+        if (va > vb) return sortDir === 'asc' ? 1 : -1
+        return 0
+      })
+    }
+    return result
+  }, [quotes, clients, search, statusFilter, execFilter, dateFrom, dateTo, sortCol, sortDir])
+
+  const handleSort = (col: SortCol) => {
+    if (sortCol === col) setSortDir((d) => d === 'asc' ? 'desc' : 'asc')
+    else { setSortCol(col); setSortDir('asc') }
+  }
+
+  const sortIcon = (col: SortCol) => sortCol === col ? (sortDir === 'asc' ? ' ↑' : ' ↓') : ''
+
+  const thStyle = (col: SortCol): React.CSSProperties => ({
+    padding: '14px 20px', textAlign: 'left', fontSize: '0.7rem', letterSpacing: '3px',
+    textTransform: 'uppercase', fontWeight: 600, color: '#2DC4C4',
+    cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap',
+    background: sortCol === col ? '#f0fafa' : 'transparent',
   })
+
+  const removeQuote = async (id: string) => {
+    if (!confirm('¿Eliminar esta cotización?')) return
+    await deleteQuote(id)
+    setQuotes((prev) => prev.filter((q) => q.id !== id))
+  }
 
   const changeStatus = async (id: string, newStatus: QuoteStatus) => {
     await updateStatus(id, newStatus)
@@ -83,6 +142,36 @@ export default function QuotesPage() {
     setModalOpen(false)
   }
 
+  const exportFiltered = () => {
+    const wb = XLSX.utils.book_new()
+    const rows = filtered.map((q, i) => {
+      const client = clientById(q.client_id)
+      return {
+        'Folio':             `Q-${String(i + 1).padStart(4, '0')}`,
+        'Cliente':           client?.full_name ?? '—',
+        'Teléfono':          client?.phone ?? '—',
+        'Destino':           q.destination,
+        'Fecha Salida':      q.travel_date ? formatDate(q.travel_date) : '—',
+        'Fecha Regreso':     q.return_date ? formatDate(q.return_date) : '—',
+        'Pasajeros':         q.num_passengers,
+        'Monto MXN':         q.amount,
+        'Estatus':           q.status,
+        'Ejecutivo':         EXEC_NAMES[q.created_by] ?? '—',
+        'Fecha Cotización':  q.created_at ? formatDate(q.created_at) : '—',
+        'Fecha Follow-up':   q.follow_up_date ? formatDate(q.follow_up_date) : '—',
+        'Notas':             q.notes,
+      }
+    })
+    const ws = XLSX.utils.json_to_sheet(rows.length ? rows : [{ 'Sin datos': '' }])
+    XLSX.utils.book_append_sheet(wb, ws, 'Cotizaciones')
+    const fecha = new Date().toISOString().split('T')[0]
+    XLSX.writeFile(wb, `Cotizaciones_Xidhu_${fecha}.xlsx`)
+  }
+
+  const filteredGanadas = filtered.filter((q) => q.status === 'ganada').length
+  const filteredMonto = filtered.reduce((s, q) => s + (q.amount ?? 0), 0)
+  const tasaCierre = filtered.length ? Math.round((filteredGanadas / filtered.length) * 100) : 0
+
   const stats = {
     pendiente: quotes.filter((q) => q.status === 'pendiente').length,
     ganada: quotes.filter((q) => q.status === 'ganada').length,
@@ -97,12 +186,20 @@ export default function QuotesPage() {
           <p className="label-ui" style={{ marginBottom: 4 }}>Gestión</p>
           <h1 style={{ margin: 0, fontSize: '1.75rem' }}>Cotizaciones</h1>
         </div>
-        <button className="xidhu-btn-primary" onClick={() => { getStoredClients().then(setClients); setModalOpen(true) }}>
-          + Nueva cotización
-        </button>
+        <div style={{ display: 'flex', gap: 12 }}>
+          <button
+            onClick={exportFiltered}
+            style={{ background: 'rgba(45,196,196,0.1)', color: '#2DC4C4', border: '1.5px solid #2DC4C4', borderRadius: 9999, padding: '10px 20px', fontSize: '0.875rem', fontWeight: 700, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", whiteSpace: 'nowrap' }}
+          >
+            ↓ Exportar Excel
+          </button>
+          <button className="xidhu-btn-primary" onClick={() => { getStoredClients().then(setClients); setModalOpen(true) }}>
+            + Nueva cotización
+          </button>
+        </div>
       </div>
 
-      {/* Stats mini */}
+      {/* Stats mini (todas las cotizaciones) */}
       <div style={{ display: 'flex', gap: 16, marginBottom: 20, flexWrap: 'wrap' }}>
         {[
           { label: 'Pendientes', value: stats.pendiente, color: '#F5C12E', bg: '#FEF9E7' },
@@ -126,12 +223,21 @@ export default function QuotesPage() {
 
       {/* Filters */}
       <div className="xidhu-card" style={{ marginBottom: 20, padding: '16px 24px' }}>
-        <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-          <input type="text" placeholder="🔍  Buscar por destino o cliente..." value={search} onChange={(e) => setSearch(e.target.value)} style={{ ...INPUT_STYLE, maxWidth: 340, flex: 1 }} />
-          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} style={{ ...INPUT_STYLE, maxWidth: 200 }}>
+        <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'center' }}>
+          <input type="text" placeholder="🔍  Buscar por destino o cliente..." value={search} onChange={(e) => setSearch(e.target.value)} style={{ ...INPUT_STYLE, maxWidth: 280, flex: 1 }} />
+          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} style={{ ...INPUT_STYLE, maxWidth: 180 }}>
             {STATUS_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
-          <span style={{ color: '#9ca3af', fontSize: '0.85rem', alignSelf: 'center' }}>
+          <select value={execFilter} onChange={(e) => setExecFilter(e.target.value)} style={{ ...INPUT_STYLE, maxWidth: 190 }}>
+            {EXEC_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+          </select>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: '0.78rem', color: '#9ca3af', whiteSpace: 'nowrap' }}>Del</span>
+            <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} style={{ ...INPUT_STYLE, maxWidth: 150 }} />
+            <span style={{ fontSize: '0.78rem', color: '#9ca3af' }}>al</span>
+            <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} style={{ ...INPUT_STYLE, maxWidth: 150 }} />
+          </div>
+          <span style={{ color: '#9ca3af', fontSize: '0.85rem', whiteSpace: 'nowrap' }}>
             {filtered.length} cotización{filtered.length !== 1 ? 'es' : ''}
           </span>
         </div>
@@ -140,14 +246,18 @@ export default function QuotesPage() {
       {/* Table */}
       <div className="xidhu-card" style={{ padding: 0, overflow: 'hidden' }}>
         <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 950 }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 1000 }}>
             <thead>
               <tr style={{ borderBottom: '2px solid #f3f4f6' }}>
-                {['Cliente', 'Destino', 'Viaje', 'Pax', 'Monto', 'Ejecutivo', 'Follow-up', 'Estatus', 'Acciones'].map((h) => (
-                  <th key={h} style={{ padding: '14px 20px', textAlign: 'left', fontSize: '0.7rem', letterSpacing: '3px', textTransform: 'uppercase', fontWeight: 600, color: '#2DC4C4' }}>
-                    {h}
-                  </th>
-                ))}
+                <th onClick={() => handleSort('client')}     style={thStyle('client')}>Cliente{sortIcon('client')}</th>
+                <th onClick={() => handleSort('destination')} style={thStyle('destination')}>Destino{sortIcon('destination')}</th>
+                <th onClick={() => handleSort('travel_date')} style={thStyle('travel_date')}>Viaje{sortIcon('travel_date')}</th>
+                <th style={{ padding: '14px 20px', textAlign: 'left', fontSize: '0.7rem', letterSpacing: '3px', textTransform: 'uppercase', fontWeight: 600, color: '#2DC4C4' }}>Pax</th>
+                <th onClick={() => handleSort('amount')}      style={thStyle('amount')}>Monto{sortIcon('amount')}</th>
+                <th onClick={() => handleSort('created_by')}  style={thStyle('created_by')}>Ejecutivo{sortIcon('created_by')}</th>
+                <th onClick={() => handleSort('follow_up_date')} style={thStyle('follow_up_date')}>Follow-up{sortIcon('follow_up_date')}</th>
+                <th onClick={() => handleSort('status')}      style={thStyle('status')}>Estatus{sortIcon('status')}</th>
+                <th style={{ padding: '14px 20px', textAlign: 'left', fontSize: '0.7rem', letterSpacing: '3px', textTransform: 'uppercase', fontWeight: 600, color: '#2DC4C4' }}>Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -171,14 +281,15 @@ export default function QuotesPage() {
                     <td style={{ padding: '14px 20px', fontSize: '0.78rem', color: '#9ca3af', whiteSpace: 'nowrap' }}>{q.follow_up_date ? formatDate(q.follow_up_date) : '—'}</td>
                     <td style={{ padding: '14px 20px' }}><StatusBadge status={q.status} /></td>
                     <td style={{ padding: '14px 20px' }}>
-                      {q.status === 'pendiente' ? (
-                        <div style={{ display: 'flex', gap: 6 }}>
-                          <button onClick={() => changeStatus(q.id, 'ganada')} style={{ background: '#EAF7E4', color: '#3a8a27', border: '1px solid #5DB544', borderRadius: 9999, padding: '4px 10px', fontSize: '0.72rem', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}>✓ Ganada</button>
-                          <button onClick={() => changeStatus(q.id, 'perdida')} style={{ background: '#FDEEEE', color: '#c0221a', border: '1px solid #E63329', borderRadius: 9999, padding: '4px 10px', fontSize: '0.72rem', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}>✗ Perdida</button>
-                        </div>
-                      ) : (
-                        <span style={{ color: '#d1d5db', fontSize: '0.78rem' }}>—</span>
-                      )}
+                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                        {q.status === 'pendiente' && (
+                          <>
+                            <button onClick={() => changeStatus(q.id, 'ganada')} style={{ background: '#EAF7E4', color: '#3a8a27', border: '1px solid #5DB544', borderRadius: 9999, padding: '4px 10px', fontSize: '0.72rem', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}>✓ Ganada</button>
+                            <button onClick={() => changeStatus(q.id, 'perdida')} style={{ background: '#FDEEEE', color: '#c0221a', border: '1px solid #E63329', borderRadius: 9999, padding: '4px 10px', fontSize: '0.72rem', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}>✗ Perdida</button>
+                          </>
+                        )}
+                        <button onClick={() => removeQuote(q.id)} style={{ background: 'rgba(239,68,68,0.1)', color: '#ef4444', border: 'none', borderRadius: 9999, padding: '4px 10px', fontSize: '0.72rem', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}>Eliminar</button>
+                      </div>
                     </td>
                   </tr>
                 )
@@ -191,11 +302,24 @@ export default function QuotesPage() {
                 </tr>
               )}
             </tbody>
+            {filtered.length > 0 && (
+              <tfoot>
+                <tr style={{ borderTop: '2px solid #f3f4f6', background: '#FAFAF6' }}>
+                  <td colSpan={4} style={{ padding: '12px 20px', fontSize: '0.8rem', color: '#9ca3af', fontWeight: 600 }}>
+                    {filtered.length} cotización{filtered.length !== 1 ? 'es' : ''} mostradas
+                  </td>
+                  <td style={{ padding: '12px 20px', fontWeight: 700, fontSize: '0.9rem', color: '#1A1A2E', whiteSpace: 'nowrap' }}>
+                    {formatCurrency(filteredMonto)}
+                  </td>
+                  <td colSpan={4} />
+                </tr>
+              </tfoot>
+            )}
           </table>
         </div>
       </div>
 
-      {/* Modal */}
+      {/* Modal nueva cotización */}
       <Modal open={modalOpen} onClose={() => setModalOpen(false)} title="Nueva Cotización">
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div>

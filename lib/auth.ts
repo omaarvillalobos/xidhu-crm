@@ -7,9 +7,9 @@ export type AuthUser = {
 }
 
 const CREDENTIALS = [
-  { email: 'ana@xidhu.mx',    password: 'ana2024',    user: { id: 'u1', name: 'Ana García',    email: 'ana@xidhu.mx',    role: 'admin'     as const, avatar: 'AG' } },
-  { email: 'carlos@xidhu.mx', password: 'carlos2024', user: { id: 'u2', name: 'Carlos López',  email: 'carlos@xidhu.mx', role: 'ejecutivo' as const, avatar: 'CL' } },
-  { email: 'maria@xidhu.mx',  password: 'maria2024',  user: { id: 'u3', name: 'María Torres',  email: 'maria@xidhu.mx',  role: 'ejecutivo' as const, avatar: 'MT' } },
+  { email: 'mariana@xidhu.mx', password: 'mariana123', user: { id: 'u1', name: 'Mariana',  email: 'mariana@xidhu.mx', role: 'admin'     as const, avatar: 'MA' } },
+  { email: 'eduardo@xidhu.mx', password: 'eduardo987', user: { id: 'u2', name: 'Eduardo',  email: 'eduardo@xidhu.mx', role: 'ejecutivo' as const, avatar: 'ED' } },
+  { email: 'issori@xidhu.mx',  password: 'issori5364', user: { id: 'u3', name: 'Issori',   email: 'issori@xidhu.mx',  role: 'ejecutivo' as const, avatar: 'IS' } },
 ]
 
 export function login(email: string, password: string): AuthUser | null {

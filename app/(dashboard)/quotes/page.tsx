@@ -65,7 +65,10 @@ export default function QuotesPage() {
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
 
   useEffect(() => {
-    getStoredQuotes().then(setQuotes)
+    const user = getCurrentUser()
+    getStoredQuotes().then((all) => {
+      setQuotes(user?.role === 'admin' ? all : all.filter((q) => q.created_by === user?.id))
+    })
     getStoredClients().then(setClients)
   }, [])
 
@@ -141,7 +144,7 @@ export default function QuotesPage() {
       amount: parseFloat(form.amount) || 0,
       status: 'pendiente',
       notes: form.notes.trim(),
-      follow_up_date: followUp.toISOString().split('T')[0],
+      follow_up_date: `${followUp.getFullYear()}-${String(followUp.getMonth()+1).padStart(2,'0')}-${String(followUp.getDate()).padStart(2,'0')}`,
       created_at: today.toISOString().split('T')[0],
       created_by: user?.id ?? 'u1',
       sale_type: form.sale_type,
@@ -259,14 +262,14 @@ export default function QuotesPage() {
           <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 1000 }}>
             <thead>
               <tr style={{ borderBottom: '2px solid #f3f4f6' }}>
-                <th onClick={() => handleSort('client')}     style={thStyle('client')}>Cliente{sortIcon('client')}</th>
-                <th onClick={() => handleSort('destination')} style={thStyle('destination')}>Destino{sortIcon('destination')}</th>
-                <th onClick={() => handleSort('travel_date')} style={thStyle('travel_date')}>Viaje{sortIcon('travel_date')}</th>
+                <th onClick={() => handleSort('client')}        style={thStyle('client')}>Cliente{sortIcon('client')}</th>
+                <th onClick={() => handleSort('destination')}   style={thStyle('destination')}>Destino{sortIcon('destination')}</th>
+                <th onClick={() => handleSort('travel_date')}   style={thStyle('travel_date')}>Fecha{sortIcon('travel_date')}</th>
                 <th style={{ padding: '14px 20px', textAlign: 'left', fontSize: '0.7rem', letterSpacing: '3px', textTransform: 'uppercase', fontWeight: 600, color: '#2DC4C4' }}>Pax</th>
-                <th onClick={() => handleSort('amount')}      style={thStyle('amount')}>Monto{sortIcon('amount')}</th>
-                <th onClick={() => handleSort('created_by')}  style={thStyle('created_by')}>Ejecutivo{sortIcon('created_by')}</th>
+                <th onClick={() => handleSort('created_by')}    style={thStyle('created_by')}>Ejecutivo{sortIcon('created_by')}</th>
                 <th onClick={() => handleSort('follow_up_date')} style={thStyle('follow_up_date')}>Follow-up{sortIcon('follow_up_date')}</th>
-                <th onClick={() => handleSort('status')}      style={thStyle('status')}>Estatus{sortIcon('status')}</th>
+                <th onClick={() => handleSort('status')}        style={thStyle('status')}>Estatus{sortIcon('status')}</th>
+                <th onClick={() => handleSort('amount')}        style={thStyle('amount')}>Monto{sortIcon('amount')}</th>
                 <th style={{ padding: '14px 20px', textAlign: 'left', fontSize: '0.7rem', letterSpacing: '3px', textTransform: 'uppercase', fontWeight: 600, color: '#2DC4C4' }}>Acciones</th>
               </tr>
             </thead>
@@ -282,7 +285,6 @@ export default function QuotesPage() {
                     <td style={{ padding: '14px 20px', fontSize: '0.875rem', color: '#4A4A5A' }}>✈️ {q.destination}</td>
                     <td style={{ padding: '14px 20px', fontSize: '0.78rem', color: '#9ca3af', whiteSpace: 'nowrap' }}>{q.travel_date ? formatDate(q.travel_date) : '—'}</td>
                     <td style={{ padding: '14px 20px', fontSize: '0.875rem', color: '#4A4A5A', textAlign: 'center' }}>{q.num_passengers}</td>
-                    <td style={{ padding: '14px 20px', fontWeight: 600, fontSize: '0.875rem', color: '#1A1A2E', whiteSpace: 'nowrap' }}>{formatCurrency(q.amount)}</td>
                     <td style={{ padding: '14px 20px', fontSize: '0.8rem' }}>
                       <span style={{ background: '#EAF7F7', color: '#2DC4C4', borderRadius: 9999, padding: '3px 10px', fontWeight: 600, fontSize: '0.75rem', whiteSpace: 'nowrap' }}>
                         {EXEC_NAMES[q.created_by] ?? '—'}
@@ -290,6 +292,7 @@ export default function QuotesPage() {
                     </td>
                     <td style={{ padding: '14px 20px', fontSize: '0.78rem', color: '#9ca3af', whiteSpace: 'nowrap' }}>{q.follow_up_date ? formatDate(q.follow_up_date) : '—'}</td>
                     <td style={{ padding: '14px 20px' }}><StatusBadge status={q.status} /></td>
+                    <td style={{ padding: '14px 20px', fontWeight: 600, fontSize: '0.875rem', color: '#1A1A2E', whiteSpace: 'nowrap' }}>{formatCurrency(q.amount)}</td>
                     <td style={{ padding: '14px 20px' }}>
                       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                         {q.status === 'pendiente' && (

@@ -16,9 +16,9 @@ const SOURCE_COLORS: Record<string, string> = {
 }
 
 const EXEC_MAP: Record<string, { name: string; role: string; color: string }> = {
-  u1: { name: 'Mariana', role: 'Admin',     color: '#2DC4C4' },
-  u2: { name: 'Eduardo', role: 'Ejecutivo', color: '#F47B20' },
-  u3: { name: 'Issori',  role: 'Ejecutivo', color: '#9B59B6' },
+  u1: { name: 'Mariana', role: 'Ejecutivo',     color: '#2DC4C4' },
+  u2: { name: 'Eduardo', role: 'Ejecutivo',     color: '#F47B20' },
+  u3: { name: 'Issori',  role: 'Administrativo', color: '#9B59B6' },
 }
 
 const RADIAN = Math.PI / 180

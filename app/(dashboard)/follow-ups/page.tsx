@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect } from 'react'
 import { formatCurrency, formatDate } from '@/lib/mock-data'
 import { getStoredQuotes, getStoredClients } from '@/lib/store'
+import { getCurrentUser } from '@/lib/auth'
 
 type FollowUpItem = {
   quoteId: string
@@ -40,7 +41,7 @@ function sectionLabel(days: number) {
   if (days < 0) return { label: `Vencido hace ${Math.abs(days)} día${Math.abs(days) > 1 ? 's' : ''}`, color: '#E63329', bg: '#FDEEEE', border: '#E63329' }
   if (days === 0) return { label: 'Hoy', color: '#E63329', bg: '#FDEEEE', border: '#E63329' }
   if (days === 1) return { label: 'Mañana', color: '#d4a017', bg: '#FEF9E7', border: '#F5C12E' }
-  return { label: 'En 2 días', color: '#2DC4C4', bg: '#E8F9F9', border: '#2DC4C4' }
+  return { label: `En ${days} días`, color: '#2DC4C4', bg: '#E8F9F9', border: '#2DC4C4' }
 }
 
 export default function FollowUpsPage() {
@@ -49,7 +50,12 @@ export default function FollowUpsPage() {
   const [quotes, setQuotes] = useState<Quote[]>([])
 
   useEffect(() => {
-    getStoredQuotes().then((q) => { setQuotes(q); setItems(buildFromQuotes(q)) })
+    const user = getCurrentUser()
+    getStoredQuotes().then((all) => {
+      const filtered = user?.role === 'admin' ? all : all.filter((q) => q.created_by === user?.id)
+      setQuotes(filtered)
+      setItems(buildFromQuotes(filtered))
+    })
     getStoredClients().then(setClients)
   }, [])
 
@@ -65,23 +71,21 @@ export default function FollowUpsPage() {
       })
     )
 
-  const visible = items.filter((i) => !i.dismissed && i.daysUntil <= 2)
+  const visible = items.filter((i) => !i.dismissed)
   const done = items.filter((i) => i.dismissed).length
   const total = items.length
 
   // Agrupar: vencidos (< 0), hoy (0), mañana (1), en 2 días (2)
   const groups = useMemo(() => {
-    const overdue = visible.filter((i) => i.daysUntil < 0)
-    const today   = visible.filter((i) => i.daysUntil === 0)
-    const tomorrow = visible.filter((i) => i.daysUntil === 1)
-    const inTwo   = visible.filter((i) => i.daysUntil === 2)
-
-    const result: { key: string; days: number; items: FollowUpItem[] }[] = []
-    if (overdue.length) result.push({ key: 'overdue', days: -1, items: overdue })
-    if (today.length)   result.push({ key: 'today',   days: 0,  items: today })
-    if (tomorrow.length) result.push({ key: 'tomorrow', days: 1, items: tomorrow })
-    if (inTwo.length)   result.push({ key: 'intwo',   days: 2,  items: inTwo })
-    return result
+    const grouped: Record<number, FollowUpItem[]> = {}
+    visible.forEach((i) => {
+      if (!grouped[i.daysUntil]) grouped[i.daysUntil] = []
+      grouped[i.daysUntil].push(i)
+    })
+    return Object.keys(grouped)
+      .map(Number)
+      .sort((a, b) => a - b)
+      .map((days) => ({ key: String(days), days, items: grouped[days] }))
   }, [visible])
 
   return (
@@ -205,7 +209,7 @@ export default function FollowUpsPage() {
                               📅 Follow-up: {formatDate(item.followUpDate)} &nbsp;·&nbsp; Cotizado el {formatDate(quote?.created_at ?? '')}
                             </p>
                             <p style={{ margin: '4px 0 0', fontSize: '0.78rem', color: '#9ca3af' }}>
-                              📞 {client?.phone} &nbsp;·&nbsp; Fuente: {client?.source}
+                              📞 {client?.phone} &nbsp;·&nbsp; Fuente: {client?.source} &nbsp;·&nbsp; Ejecutivo: {{ u1: 'Mariana', u2: 'Eduardo', u3: 'Issori' }[quote?.created_by ?? ''] ?? '—'}
                             </p>
                           </div>
 

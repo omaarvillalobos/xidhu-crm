@@ -88,6 +88,15 @@ export default function StatsPage() {
     }))
   }, [clients])
 
+  // Ingresos por tipo de venta (cotizaciones ganadas)
+  const salesByType = useMemo(() => {
+    const tipos = ['Tours', 'Personalizado', 'Terrestre', 'Aéreo (solo vuelo)', 'Paquete']
+    return tipos.map((tipo) => ({
+      tipo,
+      monto: quotes.filter((q) => q.status === 'ganada' && q.sale_type === tipo).reduce((s, q) => s + (q.amount ?? 0), 0),
+    })).filter((t) => t.monto > 0)
+  }, [quotes])
+
   // Top destinos
   const topDestinations = useMemo(() => {
     const cots: Record<string, number> = {}
@@ -175,6 +184,28 @@ export default function StatsPage() {
             <span style={{ width: 12, height: 12, borderRadius: 3, background: '#F5C12E', display: 'inline-block' }} /> Mes pico
           </span>
         </div>
+      </div>
+
+      {/* Ingresos por tipo de venta */}
+      <div className="xidhu-card" style={{ marginBottom: 28 }}>
+        <SectionTitle label="Tipos de venta" title="Ingresos por tipo de venta (ganadas)" />
+        {salesByType.length === 0 ? (
+          <p style={{ color: '#9ca3af', fontSize: '0.875rem', textAlign: 'center', padding: '40px 0' }}>Sin ventas registradas por tipo aún.</p>
+        ) : (
+          <ResponsiveContainer width="100%" height={260}>
+            <BarChart data={salesByType} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
+              <XAxis dataKey="tipo" tick={{ fontSize: 12, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false}
+                tickFormatter={(v) => v === 0 ? '' : `$${(v / 1000).toFixed(0)}k`} />
+              <Tooltip
+                formatter={(v: number) => [`$${v.toLocaleString('es-MX')} MXN`, 'Ingresos']}
+                contentStyle={{ borderRadius: 10, border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.12)', fontFamily: 'DM Sans' }}
+              />
+              <Bar dataKey="monto" fill="#F47B20" maxBarSize={60} radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        )}
       </div>
 
       {/* Fuente de clientes + Destinos */}

@@ -19,9 +19,18 @@ const STATUS_OPTIONS = [
 
 const EXEC_OPTIONS = [
   { value: '', label: 'Todos los ejecutivos' },
-  { value: 'u1', label: 'Ana García' },
-  { value: 'u2', label: 'Carlos López' },
-  { value: 'u3', label: 'María Torres' },
+  { value: 'u1', label: 'Mariana' },
+  { value: 'u2', label: 'Eduardo' },
+  { value: 'u3', label: 'Issori' },
+]
+
+const SALE_TYPE_OPTIONS = [
+  { value: '', label: 'Tipo de venta...' },
+  { value: 'Tours', label: 'Tours' },
+  { value: 'Personalizado', label: 'Personalizado' },
+  { value: 'Terrestre', label: 'Terrestre' },
+  { value: 'Aéreo (solo vuelo)', label: 'Aéreo (solo vuelo)' },
+  { value: 'Paquete', label: 'Paquete' },
 ]
 
 const INPUT_STYLE = {
@@ -30,7 +39,7 @@ const INPUT_STYLE = {
   outline: 'none', boxSizing: 'border-box' as const, color: '#1A1A2E',
 }
 
-const EXEC_NAMES: Record<string, string> = { u1: 'Ana García', u2: 'Carlos López', u3: 'María Torres' }
+const EXEC_NAMES: Record<string, string> = { u1: 'Mariana', u2: 'Eduardo', u3: 'Issori' }
 
 const now = new Date()
 const DEFAULT_FROM = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`
@@ -47,7 +56,7 @@ export default function QuotesPage() {
   const [selectedQuote, setSelectedQuote] = useState<Quote | null>(null)
   const [form, setForm] = useState({
     client_id: '', destination: '', travel_date: '', return_date: '',
-    num_passengers: '2', amount: '', notes: '',
+    num_passengers: '2', amount: '', notes: '', sale_type: '',
   })
   const [execFilter, setExecFilter] = useState('')
   const [dateFrom, setDateFrom] = useState(DEFAULT_FROM)
@@ -135,10 +144,11 @@ export default function QuotesPage() {
       follow_up_date: followUp.toISOString().split('T')[0],
       created_at: today.toISOString().split('T')[0],
       created_by: user?.id ?? 'u1',
+      sale_type: form.sale_type,
     }
     await insertQuote(newQuote)
     setQuotes((prev) => [newQuote, ...prev])
-    setForm({ client_id: '', destination: '', travel_date: '', return_date: '', num_passengers: '2', amount: '', notes: '' })
+    setForm({ client_id: '', destination: '', travel_date: '', return_date: '', num_passengers: '2', amount: '', notes: '', sale_type: '' })
     setModalOpen(false)
   }
 
@@ -327,6 +337,12 @@ export default function QuotesPage() {
             <select value={form.client_id} onChange={(e) => setForm({ ...form, client_id: e.target.value })} style={INPUT_STYLE}>
               <option value="">Seleccionar cliente...</option>
               {clients.map((c) => <option key={c.id} value={c.id}>{c.full_name}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="label-ui" style={{ display: 'block', marginBottom: 6 }}>Tipo de venta</label>
+            <select value={form.sale_type} onChange={(e) => setForm({ ...form, sale_type: e.target.value })} style={INPUT_STYLE}>
+              {SALE_TYPE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
           </div>
           <div>

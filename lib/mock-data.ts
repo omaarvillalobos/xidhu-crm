@@ -47,6 +47,7 @@ export type Quote = {
   follow_up_date: string
   created_at: string
   created_by: string
+  sale_type?: string
 }
 
 export const QUOTES: Quote[] = []

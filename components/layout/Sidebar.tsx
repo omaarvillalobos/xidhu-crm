@@ -2,7 +2,9 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
+import { useState, useEffect } from 'react'
 import { NOTIFICATIONS } from '@/lib/mock-data'
+import { getCurrentUser, AuthUser } from '@/lib/auth'
 
 const NAV_ITEMS = [
   { href: '/dashboard', label: 'Dashboard', icon: '◈' },
@@ -16,6 +18,8 @@ export default function Sidebar() {
   const pathname = usePathname()
   const router = useRouter()
   const unread = NOTIFICATIONS.filter((n) => !n.read).length
+  const [user, setUser] = useState<AuthUser | null>(null)
+  useEffect(() => { setUser(getCurrentUser()) }, [])
 
   return (
     <aside
@@ -108,11 +112,11 @@ export default function Sidebar() {
               flexShrink: 0,
             }}
           >
-            AG
+            {user?.avatar ?? '??'}
           </div>
           <div>
-            <p style={{ color: 'white', fontWeight: 600, fontSize: '0.85rem', margin: 0 }}>Ana García</p>
-            <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.7rem', margin: 0 }}>Admin</p>
+            <p style={{ color: 'white', fontWeight: 600, fontSize: '0.85rem', margin: 0 }}>{user?.name ?? ''}</p>
+            <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.7rem', margin: 0 }}>{user?.role === 'admin' ? 'Administrativo' : 'Ejecutivo'}</p>
           </div>
         </div>
         <button

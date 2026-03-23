@@ -2,7 +2,9 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useState, useEffect } from 'react'
 import { NOTIFICATIONS } from '@/lib/mock-data'
+import { getCurrentUser, AuthUser } from '@/lib/auth'
 
 const BREADCRUMBS: Record<string, string> = {
   '/dashboard': 'Dashboard',
@@ -16,6 +18,8 @@ export default function Header() {
   const pathname = usePathname()
   const unread = NOTIFICATIONS.filter((n) => !n.read).length
   const section = BREADCRUMBS[pathname] ?? 'CRM'
+  const [user, setUser] = useState<AuthUser | null>(null)
+  useEffect(() => { setUser(getCurrentUser()) }, [])
 
   return (
     <header
@@ -78,9 +82,9 @@ export default function Header() {
               fontSize: '0.8rem',
             }}
           >
-            AG
+            {user?.avatar ?? '??'}
           </div>
-          <span style={{ fontSize: '0.85rem', fontWeight: 500, color: '#1A1A2E' }}>Ana García</span>
+          <span style={{ fontSize: '0.85rem', fontWeight: 500, color: '#1A1A2E' }}>{user?.name ?? ''}</span>
         </div>
       </div>
     </header>

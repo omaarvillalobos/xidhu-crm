@@ -32,7 +32,14 @@ export default function ClientsPage() {
   const [form, setForm] = useState({ name: '', phone: '', email: '', source: 'whatsapp', notes: '' })
 
   useEffect(() => {
-    getStoredClients().then(setClients)
+    const user = getCurrentUser()
+    getStoredClients().then((all) => {
+      if (user?.role === 'admin') {
+        setClients(all)
+      } else {
+        setClients(all.filter((c) => c.created_by === user?.id))
+      }
+    })
   }, [])
 
   const saveClient = async () => {
@@ -68,7 +75,7 @@ export default function ClientsPage() {
 
   // Lookup ejecutivo por id desde los usuarios hardcodeados
   const execName = (id: string) => {
-    const map: Record<string, string> = { u1: 'Ana García', u2: 'Carlos López', u3: 'María Torres' }
+    const map: Record<string, string> = { u1: 'Mariana', u2: 'Eduardo', u3: 'Issori' }
     return map[id] ?? '—'
   }
 

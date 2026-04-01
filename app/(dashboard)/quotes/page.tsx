@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import * as XLSX from 'xlsx'
 import { Quote, QuoteStatus, formatCurrency, formatDate } from '@/lib/mock-data'
-import { getStoredClients, getStoredQuotes, insertQuote, updateQuoteStatus as updateStatus, deleteQuote } from '@/lib/store'
+import { getStoredClients, getStoredQuotes, insertQuote, updateQuoteStatus as updateStatus, deleteQuote, updateQuote } from '@/lib/store'
 import { getCurrentUser } from '@/lib/auth'
 import { Client } from '@/lib/mock-data'
 import StatusBadge from '@/components/ui/StatusBadge'
@@ -58,6 +58,7 @@ export default function QuotesPage() {
     client_id: '', destination: '', travel_date: '', return_date: '',
     num_passengers: '2', amount: '', notes: '', sale_type: '',
   })
+  const [editingQuote, setEditingQuote] = useState<Quote | null>(null)
   const [execFilter, setExecFilter] = useState('')
   const [dateFrom, setDateFrom] = useState(DEFAULT_FROM)
   const [dateTo, setDateTo] = useState(DEFAULT_TO)
@@ -82,7 +83,8 @@ export default function QuotesPage() {
         (client?.full_name.toLowerCase().includes(search.toLowerCase()) ?? false)
       const matchStatus = !statusFilter || q.status === statusFilter
       const matchExec = !execFilter || q.created_by === execFilter
-      const matchDate = (!dateFrom || q.created_at >= dateFrom) && (!dateTo || q.created_at <= dateTo)
+      const createdDate = q.created_at?.slice(0, 10) ?? ''
+      const matchDate = (!dateFrom || createdDate >= dateFrom) && (!dateTo || createdDate <= dateTo)
       return matchSearch && matchStatus && matchExec && matchDate
     })
     if (sortCol) {
@@ -128,29 +130,63 @@ export default function QuotesPage() {
     setQuotes((prev) => prev.map((q) => q.id === id ? { ...q, status: newStatus } : q))
   }
 
+  const openEditModal = (q: Quote) => {
+    setEditingQuote(q)
+    setForm({
+      client_id: q.client_id,
+      destination: q.destination,
+      travel_date: q.travel_date ?? '',
+      return_date: q.return_date ?? '',
+      num_passengers: String(q.num_passengers ?? 2),
+      amount: q.amount ? String(q.amount) : '',
+      notes: q.notes ?? '',
+      sale_type: q.sale_type ?? '',
+    })
+    getStoredClients().then(setClients)
+    setModalOpen(true)
+  }
+
   const saveQuote = async () => {
-    if (!form.client_id || !form.destination.trim() || !form.amount) return
-    const user = getCurrentUser()
-    const today = new Date()
-    const followUp = new Date(today)
-    followUp.setDate(today.getDate() + 2)
-    const newQuote: Quote = {
-      id: `q${Date.now()}`,
-      client_id: form.client_id,
-      destination: form.destination.trim(),
-      travel_date: form.travel_date,
-      return_date: form.return_date,
-      num_passengers: parseInt(form.num_passengers) || 1,
-      amount: parseFloat(form.amount) || 0,
-      status: 'pendiente',
-      notes: form.notes.trim(),
-      follow_up_date: `${followUp.getFullYear()}-${String(followUp.getMonth()+1).padStart(2,'0')}-${String(followUp.getDate()).padStart(2,'0')}`,
-      created_at: today.toISOString().split('T')[0],
-      created_by: user?.id ?? 'u1',
-      sale_type: form.sale_type,
+    if (!form.client_id || !form.destination.trim()) return
+
+    if (editingQuote) {
+      const updatedFields: Partial<Quote> = {
+        client_id: form.client_id,
+        destination: form.destination.trim(),
+        travel_date: form.travel_date,
+        return_date: form.return_date,
+        num_passengers: parseInt(form.num_passengers) || 1,
+        amount: parseFloat(form.amount) || 0,
+        notes: form.notes.trim(),
+        sale_type: form.sale_type,
+      }
+      await updateQuote(editingQuote.id, updatedFields)
+      setQuotes((prev) => prev.map((q) => q.id === editingQuote.id ? { ...q, ...updatedFields } : q))
+      setEditingQuote(null)
+    } else {
+      const user = getCurrentUser()
+      const today = new Date()
+      const followUp = new Date(today)
+      followUp.setDate(today.getDate() + 2)
+      const newQuote: Quote = {
+        id: `q${Date.now()}`,
+        client_id: form.client_id,
+        destination: form.destination.trim(),
+        travel_date: form.travel_date,
+        return_date: form.return_date,
+        num_passengers: parseInt(form.num_passengers) || 1,
+        amount: parseFloat(form.amount) || 0,
+        status: 'pendiente',
+        notes: form.notes.trim(),
+        follow_up_date: `${followUp.getFullYear()}-${String(followUp.getMonth()+1).padStart(2,'0')}-${String(followUp.getDate()).padStart(2,'0')}`,
+        created_at: `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`,
+        created_by: user?.id ?? 'u1',
+        sale_type: form.sale_type,
+      }
+      await insertQuote(newQuote)
+      setQuotes((prev) => [newQuote, ...prev])
     }
-    await insertQuote(newQuote)
-    setQuotes((prev) => [newQuote, ...prev])
+
     setForm({ client_id: '', destination: '', travel_date: '', return_date: '', num_passengers: '2', amount: '', notes: '', sale_type: '' })
     setModalOpen(false)
   }
@@ -206,7 +242,7 @@ export default function QuotesPage() {
           >
             ↓ Exportar Excel
           </button>
-          <button className="xidhu-btn-primary" onClick={() => { getStoredClients().then(setClients); setModalOpen(true) }}>
+          <button className="xidhu-btn-primary" onClick={() => { setEditingQuote(null); setForm({ client_id: '', destination: '', travel_date: '', return_date: '', num_passengers: '2', amount: '', notes: '', sale_type: '' }); getStoredClients().then(setClients); setModalOpen(true) }}>
             + Nueva cotización
           </button>
         </div>
@@ -295,6 +331,7 @@ export default function QuotesPage() {
                     <td style={{ padding: '14px 20px', fontWeight: 600, fontSize: '0.875rem', color: '#1A1A2E', whiteSpace: 'nowrap' }}>{formatCurrency(q.amount)}</td>
                     <td style={{ padding: '14px 20px' }}>
                       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                        <button onClick={() => openEditModal(q)} style={{ background: 'rgba(45,196,196,0.1)', color: '#2DC4C4', border: '1px solid #2DC4C4', borderRadius: 9999, padding: '4px 10px', fontSize: '0.72rem', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}>✎ Editar</button>
                         {q.status === 'pendiente' && (
                           <>
                             <button onClick={() => changeStatus(q.id, 'ganada')} style={{ background: '#EAF7E4', color: '#3a8a27', border: '1px solid #5DB544', borderRadius: 9999, padding: '4px 10px', fontSize: '0.72rem', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}>✓ Ganada</button>
@@ -333,7 +370,7 @@ export default function QuotesPage() {
       </div>
 
       {/* Modal nueva cotización */}
-      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title="Nueva Cotización">
+      <Modal open={modalOpen} onClose={() => { setModalOpen(false); setEditingQuote(null) }} title={editingQuote ? 'Editar Cotización' : 'Nueva Cotización'}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div>
             <label className="label-ui" style={{ display: 'block', marginBottom: 6 }}>Cliente</label>
@@ -368,7 +405,7 @@ export default function QuotesPage() {
               <input type="number" min="1" value={form.num_passengers} onChange={(e) => setForm({ ...form, num_passengers: e.target.value })} style={INPUT_STYLE} />
             </div>
             <div>
-              <label className="label-ui" style={{ display: 'block', marginBottom: 6 }}>Monto (MXN)</label>
+              <label className="label-ui" style={{ display: 'block', marginBottom: 6 }}>Monto (MXN) <span style={{ color: '#9ca3af', fontWeight: 400 }}>— opcional</span></label>
               <input type="number" placeholder="25000" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} style={INPUT_STYLE} />
             </div>
           </div>
@@ -380,8 +417,8 @@ export default function QuotesPage() {
             📅 Follow-up automático programado para 2 días después de guardar.
           </div>
           <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', marginTop: 4 }}>
-            <button className="xidhu-btn-secondary" onClick={() => setModalOpen(false)}>Cancelar</button>
-            <button className="xidhu-btn-primary" onClick={saveQuote}>Guardar cotización</button>
+            <button className="xidhu-btn-secondary" onClick={() => { setModalOpen(false); setEditingQuote(null) }}>Cancelar</button>
+            <button className="xidhu-btn-primary" onClick={saveQuote}>{editingQuote ? 'Actualizar cotización' : 'Guardar cotización'}</button>
           </div>
         </div>
       </Modal>

@@ -23,6 +23,10 @@ export async function updateQuoteStatus(id: string, status: string): Promise<voi
   await supabase.from('quotes').update({ status }).eq('id', id)
 }
 
+export async function updateQuote(id: string, fields: Partial<Quote>): Promise<void> {
+  await supabase.from('quotes').update(fields).eq('id', id)
+}
+
 export async function deleteQuote(id: string): Promise<void> {
   await supabase.from('quotes').delete().eq('id', id)
 }

@@ -92,6 +92,12 @@ export function formatCurrency(amount: number): string {
   return `$${amount.toLocaleString('es-MX')} MXN`
 }
 
+/** Returns today's date as YYYY-MM-DD in local timezone */
+export function todayStr(): string {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
 export function formatDate(dateStr: string): string {
   const [y, m, d] = dateStr.split('-')
   return `${d}/${m}/${y}`

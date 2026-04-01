@@ -1,5 +1,6 @@
 import * as XLSX from 'xlsx'
 import type { Client, Quote } from './mock-data'
+import { todayStr } from './mock-data'
 
 const EXEC_NAMES: Record<string, string> = {
   u1: 'Ana García',
@@ -59,6 +60,6 @@ export function exportToExcel(clients: Client[], quotes: Quote[]) {
   XLSX.utils.book_append_sheet(wb, wsStats, 'Estadísticas')
 
   // ── Descargar ─────────────────────────────────────────────────────
-  const fecha = new Date().toISOString().split('T')[0]
+  const fecha = todayStr()
   XLSX.writeFile(wb, `xidhu-crm-${fecha}.xlsx`)
 }

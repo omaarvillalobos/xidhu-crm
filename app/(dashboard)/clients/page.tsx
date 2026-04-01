@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { Client, Source, formatDate } from '@/lib/mock-data'
+import { Client, Source, formatDate, todayStr } from '@/lib/mock-data'
 import { getStoredClients, insertClient, deleteClient, getStoredQuotes } from '@/lib/store'
 import { getCurrentUser } from '@/lib/auth'
 import { exportToExcel } from '@/lib/export'
@@ -52,7 +52,7 @@ export default function ClientsPage() {
       email: form.email.trim(),
       source: form.source as Source,
       notes: form.notes.trim(),
-      created_at: new Date().toISOString().split('T')[0],
+      created_at: todayStr(),
       created_by: user?.id ?? 'u1',
     }
     await insertClient(newClient)

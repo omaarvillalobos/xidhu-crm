@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
-import { formatCurrency, formatDate } from '@/lib/mock-data'
+import { formatCurrency, formatDate, todayStr as getTodayStr } from '@/lib/mock-data'
 import { getStoredClients, getStoredQuotes } from '@/lib/store'
 import { getCurrentUser } from '@/lib/auth'
 import type { Client, Quote } from '@/lib/mock-data'
@@ -43,7 +43,7 @@ export default function DashboardPage() {
 
   const now = new Date()
   const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
-  const todayStr = now.toISOString().split('T')[0]
+  const todayStr = getTodayStr()
 
   // KPIs
   const activeQuotes = quotes.filter((q) => q.status === 'pendiente').length

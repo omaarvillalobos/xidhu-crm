@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import * as XLSX from 'xlsx'
-import { Quote, QuoteStatus, formatCurrency, formatDate } from '@/lib/mock-data'
+import { Quote, QuoteStatus, formatCurrency, formatDate, todayStr } from '@/lib/mock-data'
 import { getStoredClients, getStoredQuotes, insertQuote, updateQuoteStatus as updateStatus, deleteQuote, updateQuote } from '@/lib/store'
 import { getCurrentUser } from '@/lib/auth'
 import { Client } from '@/lib/mock-data'
@@ -213,7 +213,7 @@ export default function QuotesPage() {
     })
     const ws = XLSX.utils.json_to_sheet(rows.length ? rows : [{ 'Sin datos': '' }])
     XLSX.utils.book_append_sheet(wb, ws, 'Cotizaciones')
-    const fecha = new Date().toISOString().split('T')[0]
+    const fecha = todayStr()
     XLSX.writeFile(wb, `Cotizaciones_Xidhu_${fecha}.xlsx`)
   }
 

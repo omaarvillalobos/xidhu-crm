@@ -48,6 +48,11 @@ export type Quote = {
   created_at: string
   created_by: string
   sale_type?: string
+  // Desglose financiero (todos opcionales)
+  subtotal?: number | null
+  discount_pct?: number | null
+  tax_pct?: number | null
+  cost?: number | null
 }
 
 export const QUOTES: Quote[] = []

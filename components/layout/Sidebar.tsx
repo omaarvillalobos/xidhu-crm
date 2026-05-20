@@ -10,6 +10,8 @@ const NAV_ITEMS = [
   { href: '/dashboard', label: 'Dashboard', icon: '◈' },
   { href: '/clients', label: 'Clientes', icon: '👥' },
   { href: '/quotes', label: 'Cotizaciones', icon: '📋' },
+  { href: '/sales', label: 'Ventas', icon: '💰' },
+  { href: '/earnings', label: 'Ganancias', icon: '📈' },
   { href: '/follow-ups', label: 'Seguimientos', icon: '🔔' },
   { href: '/stats', label: 'Estadísticas', icon: '📊' },
 ]
